@@ -38,17 +38,18 @@ pub fn handle_click_window(
     player_id : Entity
 ) -> SysResult {
 
-    let result = _handle_click_window(game, &packet, player_id);
-
-
-
     let player = game.ecs.entity(player_id)?;
+    let client_id = *player.get::<ClientId>()?;
+
 
     let window = player.get::<Window>()?;
 
-    let client = server.clients.get(*player.get_mut::<ClientId>()?).unwrap();
 
 
+    let result = _handle_click_window(game, player, &packet, player_id);
+
+
+    let client = server.clients.get(client_id).unwrap();
 
 
     client.confirm_window_action(
@@ -69,12 +70,8 @@ pub fn handle_click_window(
 }
 
 
-fn _handle_click_window(game : &mut Game, packet: &ClickWindow, player_id : Entity) -> SysResult {
-    let mut window;
-    {
-        let player = game.ecs.entity(player_id)?;
-        window = player.get_mut::<Window>()?;
-    }
+fn _handle_click_window(game : &mut Game, player : EntityRef, packet: &ClickWindow, player_id : Entity) -> SysResult {
+    let mut window = player.get_mut::<Window>()?;
 
     match packet.mode {
         0 => match packet.button {
