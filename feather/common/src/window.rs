@@ -193,6 +193,19 @@ impl Window {
             }
         }
     }
+    pub fn drop_item(&mut self, slot : usize) -> Result<Option<ItemStack>, WindowError>{
+        println!("estamos acá");
+        let mut item_guard = self.inner.item(slot)?;
+        if let Some(item) = item_guard.as_mut(){
+            item.count -= 1;
+        }
+
+        Ok(Some(ItemStack {
+            item: Item::Cookie,
+            count: 1,
+            damage: None
+        }))
+    }
 
     pub fn item(&self, index: usize) -> Result<MutexGuard<Option<ItemStack>>, WindowError> {
         self.inner.item(index)

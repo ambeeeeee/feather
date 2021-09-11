@@ -3,6 +3,8 @@ All events in this file are triggerd when there is a change in a certain value.
 */
 
 use serde::{Deserialize, Serialize};
+use crate::EntityId;
+use crate::entities::Player;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CreativeFlyingEvent {
@@ -42,3 +44,15 @@ impl SprintEvent {
         }
     }
 }
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DropItemEvent {
+    pub item : u32
+}
+impl DropItemEvent{
+    pub fn new(item : u32) -> Self{
+        Self {
+            item
+        }
+    }
+}
+

@@ -53,7 +53,7 @@ pub fn handle_packet(
             inventory::handle_creative_inventory_action(player, packet)
         }
         ClientPlayPacket::ClickWindow(packet) => {
-            inventory::handle_click_window(server, player, packet)
+            inventory::handle_click_window(game, server,  packet, player_id)
         }
 
         ClientPlayPacket::PlayerBlockPlacement(packet) => {

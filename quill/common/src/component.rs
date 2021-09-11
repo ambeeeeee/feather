@@ -190,7 +190,7 @@ host_component_enum! {
         SneakEvent = 1012,
         Sprinting = 1013,
         SprintEvent = 1014,
-
+        DropItemEvent = 1015
 
     }
 }
@@ -355,3 +355,4 @@ bincode_component_impl!(BlockInteractEvent);
 bincode_component_impl!(CreativeFlyingEvent);
 bincode_component_impl!(SneakEvent);
 bincode_component_impl!(SprintEvent);
+bincode_component_impl!(DropItemEvent);

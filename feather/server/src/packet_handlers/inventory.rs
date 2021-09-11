@@ -1,10 +1,14 @@
 use anyhow::bail;
 use base::Gamemode;
-use common::{window::BackingWindow, Window};
-use ecs::{EntityRef, SysResult};
+use common::{window::BackingWindow, Window, Game};
+use ecs::{EntityRef, SysResult, Entity};
 use protocol::packets::client::{ClickWindow, CreativeInventoryAction};
+use quill_common::events::DropItemEvent;
 
 use crate::{ClientId, Server};
+use std::ops::Deref;
+use quill_common::EntityId;
+use quill_common::entities::Player;
 
 pub fn handle_creative_inventory_action(
     player: EntityRef,
@@ -13,7 +17,6 @@ pub fn handle_creative_inventory_action(
     if *player.get::<Gamemode>()? != Gamemode::Creative {
         bail!("cannot use Creative Inventory Action outside of creative mode");
     }
-
     if packet.slot != -1 {
         let window = player.get::<Window>()?;
         if !matches!(window.inner(), BackingWindow::Player { .. }) {
@@ -29,20 +32,31 @@ pub fn handle_creative_inventory_action(
 }
 
 pub fn handle_click_window(
+    game : &mut Game,
     server: &mut Server,
-    player: EntityRef,
     packet: ClickWindow,
+    player_id : Entity
 ) -> SysResult {
-    let result = _handle_click_window(&player, &packet);
 
-    let client = server.clients.get(*player.get::<ClientId>()?).unwrap();
+    let result = _handle_click_window(game, &packet, player_id);
+
+
+
+    let player = game.ecs.entity(player_id)?;
+
+    let window = player.get::<Window>()?;
+
+    let client = server.clients.get(*player.get_mut::<ClientId>()?).unwrap();
+
+
+
+
     client.confirm_window_action(
         packet.window_id,
         packet.action_number as i16,
         result.is_ok(),
     );
 
-    let window = player.get::<Window>()?;
 
     if packet.slot >= 0 {
         client.set_slot(packet.slot, window.item(packet.slot as usize)?.clone());
@@ -54,13 +68,25 @@ pub fn handle_click_window(
     result
 }
 
-fn _handle_click_window(player: &EntityRef, packet: &ClickWindow) -> SysResult {
-    let mut window = player.get_mut::<Window>()?;
+
+fn _handle_click_window(game : &mut Game, packet: &ClickWindow, player_id : Entity) -> SysResult {
+    let mut window;
+    {
+        let player = game.ecs.entity(player_id)?;
+        window = player.get_mut::<Window>()?;
+    }
+
     match packet.mode {
         0 => match packet.button {
             0 => window.left_click(packet.slot as usize)?,
             1 => window.right_click(packet.slot as usize)?,
             _ => bail!("unrecgonized click"),
+        },
+        4 => {
+            let item_option = window.drop_item(packet.slot as usize)?;
+            if let Some(item) = item_option{
+                game.ecs.insert_entity_event(player_id, DropItemEvent::new(item.item as u32))?
+            }
         },
         1 => window.shift_click(packet.slot as usize)?,
         5 => match packet.button {
@@ -73,6 +99,7 @@ fn _handle_click_window(player: &EntityRef, packet: &ClickWindow) -> SysResult {
         _ => bail!("unsupported window click mode"),
     };
 
+    println!("{:?}", packet.mode as usize);
     Ok(())
 }
 
