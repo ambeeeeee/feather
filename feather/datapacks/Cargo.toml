@@ -15,6 +15,7 @@ generated = { path = "../generated", package = "feather-generated" }
 blocks = { path = "../blocks", package = "feather-blocks"}
 protocol = { path = "../protocol", package = "feather-protocol" }
 walkdir = "2.3.2"
+smallvec = {version = "1.6", features = ["serde"]}
 
 [build-dependencies]
 vanilla-assets = { path = "./vanilla_assets", package = "feather-vanilla-assets" }

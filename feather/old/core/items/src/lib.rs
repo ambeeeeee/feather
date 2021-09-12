@@ -5,11 +5,12 @@ pub use feather_definitions::Item;
 /// Represents an item stack.
 ///
 /// An item stack includes a type, an amount, and a bunch of properties (enchantments, etc.)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ItemStack {
     /// The type of this item.
     pub ty: Item,
     /// The number of items in this stack.
+    #[serde(default = "default_count")]
     pub amount: u8,
     /// Amount of damage taken on tools/equipment (how much durability expended).
     pub damage: Option<i32>,
@@ -41,6 +42,10 @@ impl ItemStack {
     pub fn eq_ignore_amount(self, other: Self) -> bool {
         self.of_amount(0) == other.of_amount(0)
     }
+}
+
+pub fn default_count() -> u32 {
+    1
 }
 
 #[cfg(test)]

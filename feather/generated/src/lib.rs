@@ -19,16 +19,19 @@ mod simplified_block;
 pub mod vanilla_tags;
 
 pub use biome::Biome;
-pub use block::BlockKind;
-pub use entity::EntityKind;
+pub use block::{BlockKind, BlockNotFound};
+pub use entity::{EntityKind, EntityNotFound};
 pub use inventory::{Area, InventoryBacking, Window};
-pub use item::Item;
+pub use item::{Item, ItemNotFound};
 pub use particle::Particle;
 pub use simplified_block::SimplifiedBlockKind;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ItemStack {
     pub item: Item,
+    #[serde(default = "default_count")]
     pub count: u32,
 
     /// Damage to the item, if it's damageable.
@@ -146,6 +149,10 @@ impl ItemStack {
             None => false,
         }
     }
+}
+
+pub fn default_count() -> u32 {
+    1
 }
 
 type Slot = Mutex<Option<ItemStack>>;

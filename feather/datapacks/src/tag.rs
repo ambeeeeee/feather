@@ -1,9 +1,9 @@
 use std::{
-    borrow::Borrow, cell::RefCell, collections::VecDeque, fmt::Display, fs::File, io::Read,
-    path::Path, str::FromStr,
+    cell::RefCell, collections::VecDeque, convert::TryFrom, fmt::Display, fs::File, hash::Hash,
+    io::Read, path::Path, str::FromStr,
 };
 
-use crate::NamespacedId;
+use crate::{NamespacedId, TagLoadError};
 use ahash::{AHashMap, AHashSet};
 use blocks::BlockId;
 use generated::{BlockKind, EntityKind, Item};
@@ -12,7 +12,7 @@ use protocol::{
     VarInt,
 };
 use serde::Deserialize;
-use smartstring::{Compact, SmartString};
+
 use thiserror::Error;
 use walkdir::WalkDir;
 
@@ -22,10 +22,10 @@ pub use generated::vanilla_tags::*;
 /// An example of this behaviour is the tag `#minecraft:fences`, which includes `minecraft:nether_brick_fence` and `#minecraft:wooden_fences`.
 #[derive(Debug, Default)]
 pub struct TagRegistryBuilder {
-    block_map: AHashMap<NamespacedId, AHashSet<SmartString<Compact>>>,
-    entity_map: AHashMap<NamespacedId, AHashSet<SmartString<Compact>>>,
-    fluid_map: AHashMap<NamespacedId, AHashSet<SmartString<Compact>>>,
-    item_map: AHashMap<NamespacedId, AHashSet<SmartString<Compact>>>,
+    block_map: AHashMap<NamespacedId, AHashSet<String>>,
+    entity_map: AHashMap<NamespacedId, AHashSet<String>>,
+    fluid_map: AHashMap<NamespacedId, AHashSet<String>>,
+    item_map: AHashMap<NamespacedId, AHashSet<String>>,
 }
 
 impl TagRegistryBuilder {
@@ -34,6 +34,7 @@ impl TagRegistryBuilder {
             ..Default::default()
         }
     }
+
     pub fn add_tags_from_dir(
         &mut self,
         dir: &Path,
@@ -63,9 +64,10 @@ impl TagRegistryBuilder {
         this.add_tags_from_dir(dir, namespace)?;
         Ok(this)
     }
+
     fn fill_map(
         dir: &Path,
-        map: &mut AHashMap<NamespacedId, AHashSet<SmartString<Compact>>>,
+        map: &mut AHashMap<NamespacedId, AHashSet<String>>,
         namespace: &str,
     ) -> Result<(), crate::TagLoadError> {
         for entry in WalkDir::new(dir).into_iter() {
@@ -92,10 +94,8 @@ impl TagRegistryBuilder {
         }
         Ok(())
     }
-    fn fill_set(
-        file: &Path,
-        set: &mut AHashSet<SmartString<Compact>>,
-    ) -> Result<(), crate::TagLoadError> {
+
+    fn fill_set(file: &Path, set: &mut AHashSet<String>) -> Result<(), crate::TagLoadError> {
         assert!(file.is_file());
         let mut s = String::new();
         File::open(file).unwrap().read_to_string(&mut s).unwrap();
@@ -104,14 +104,19 @@ impl TagRegistryBuilder {
             set.clear();
         }
         for entry in file.values {
-            set.insert(SmartString::from(entry));
+            set.insert(entry);
         }
         Ok(())
     }
-    fn parse(
-        source: &AHashMap<NamespacedId, AHashSet<SmartString<Compact>>>,
-        target: &mut AHashMap<NamespacedId, AHashSet<NamespacedId>>,
-    ) -> Result<(), crate::TagLoadError> {
+
+    fn parse<T>(
+        source: &AHashMap<NamespacedId, AHashSet<String>>,
+        target: &mut AHashMap<NamespacedId, AHashSet<T>>,
+    ) -> Result<(), crate::TagLoadError>
+    where
+        T: TryFrom<String> + Eq + Hash + Copy,
+        <T as TryFrom<String>>::Error: Into<TagLoadError>,
+    {
         let mut stack = VecDeque::new();
         for tag in source.keys().cloned() {
             if target.contains_key(&tag) {
@@ -121,15 +126,21 @@ impl TagRegistryBuilder {
         }
         Ok(())
     }
-    fn parse_rec(
+
+    fn parse_rec<T>(
         tag: NamespacedId,
         stack: &mut VecDeque<NamespacedId>,
-        source: &AHashMap<NamespacedId, AHashSet<SmartString<Compact>>>,
-        target: &mut AHashMap<NamespacedId, AHashSet<NamespacedId>>,
-    ) -> Result<(), crate::TagLoadError> {
+        source: &AHashMap<NamespacedId, AHashSet<String>>,
+        target: &mut AHashMap<NamespacedId, AHashSet<T>>,
+    ) -> Result<(), crate::TagLoadError>
+    where
+        T: TryFrom<String> + Eq + Hash + Copy,
+        <T as TryFrom<String>>::Error: Into<TagLoadError>,
+    {
         if stack.contains(&tag) {
             return Err(LoopError(stack.iter().cloned().collect()).into());
         }
+
         let set = match source.get(&tag) {
             Some(s) => s,
             None => {
@@ -162,18 +173,24 @@ impl TagRegistryBuilder {
             .filter(|e| !e.starts_with('#'))
         {
             // Insert all non-tag entries
-            target_entry.insert(NamespacedId::from_str(i)?);
+            match <T as TryFrom<String>>::try_from(i.clone()) {
+                Ok(entry) => {
+                    target_entry.insert(entry);
+                }
+                Err(err) => return Err(err.into()),
+            }
         }
         // This tag is now parsed.
         stack.pop_back();
 
         Ok(())
     }
+
     pub fn build(self) -> Result<TagRegistry, crate::TagLoadError> {
         let mut res = TagRegistry::new();
         Self::parse(&self.block_map, &mut res.block_map)?;
         Self::parse(&self.entity_map, &mut res.entity_map)?;
-        Self::parse(&self.fluid_map, &mut res.fluid_map)?;
+        // Self::parse(&self.fluid_map, &mut res.fluid_map)?;
         Self::parse(&self.item_map, &mut res.item_map)?;
         Ok(res)
     }
@@ -181,12 +198,14 @@ impl TagRegistryBuilder {
 /// A registry for keeping track of tags.
 #[derive(Debug, Default)]
 pub struct TagRegistry {
-    block_map: AHashMap<NamespacedId, AHashSet<NamespacedId>>,
-    entity_map: AHashMap<NamespacedId, AHashSet<NamespacedId>>,
+    block_map: AHashMap<NamespacedId, AHashSet<BlockKind>>,
+    entity_map: AHashMap<NamespacedId, AHashSet<EntityKind>>,
+    // TODO
     fluid_map: AHashMap<NamespacedId, AHashSet<NamespacedId>>,
-    item_map: AHashMap<NamespacedId, AHashSet<NamespacedId>>,
+    item_map: AHashMap<NamespacedId, AHashSet<Item>>,
     cached_packet: RefCell<Option<Box<AllTags>>>,
 }
+
 impl TagRegistry {
     pub fn new() -> Self {
         Self {
@@ -199,7 +218,7 @@ impl TagRegistry {
     {
         self.block_map
             .get(&tag.clone().into())
-            .map(|set| set.get(&NamespacedId::from_str(block.name()).unwrap()))
+            .map(|set| set.get(&block))
             .flatten()
             .is_some()
     }
@@ -209,7 +228,7 @@ impl TagRegistry {
     {
         self.entity_map
             .get(&tag.clone().into())
-            .map(|set| set.get(&NamespacedId::from_str(entity.name()).unwrap()))
+            .map(|set| set.get(&entity))
             .flatten()
             .is_some()
     }
@@ -229,21 +248,11 @@ impl TagRegistry {
     {
         self.item_map
             .get(&tag.clone().into())
-            .map(|set| set.get(&NamespacedId::from_str(item.name()).unwrap()))
+            .map(|set| set.get(&item))
             .flatten()
             .is_some()
     }
-    pub fn check_for_any_tag<T>(&self, thing: impl Borrow<str>, tag: &T) -> bool
-    where
-        T: Into<NamespacedId> + Clone,
-    {
-        let thing = NamespacedId::from_str(thing.borrow()).unwrap();
-        let tag = tag.clone().into();
-        self.block_map.get(&tag).map(|s| s.get(&thing)).is_some()
-            | self.entity_map.get(&tag).map(|s| s.get(&thing)).is_some()
-            | self.fluid_map.get(&tag).map(|s| s.get(&thing)).is_some()
-            | self.item_map.get(&tag).map(|s| s.get(&thing)).is_some()
-    }
+
     /// Provides an `AllTags` packet for sending to the client. This tag is cached to save some performance.
     pub fn all_tags(&self) -> AllTags {
         let mut inner = self.cached_packet.borrow_mut();
@@ -312,18 +321,26 @@ impl TagRegistry {
             entity_tags,
         }
     }
-    fn display_helper(
-        map: &AHashMap<NamespacedId, AHashSet<NamespacedId>>,
+    fn display_helper<T>(
+        map: &AHashMap<NamespacedId, AHashSet<T>>,
         f: &mut std::fmt::Formatter<'_>,
-    ) -> std::fmt::Result {
-        let mut m = map.iter().collect::<Vec<_>>();
-        m.sort_by(|a, b| a.0.cmp(b.0));
-        for (a, b) in m {
-            writeln!(f, "{}: ", a)?;
-            let mut n = b.iter().collect::<Vec<_>>();
-            n.sort();
-            for c in n {
-                writeln!(f, "    {}", c)?;
+    ) -> std::fmt::Result
+    where
+        T: std::fmt::Debug + Ord,
+    {
+        let mut sorted_map = map.iter().collect::<Vec<_>>();
+
+        sorted_map.sort_by(|a, b| a.0.cmp(b.0));
+
+        for (tag, mapping) in sorted_map {
+            writeln!(f, "{}: ", tag)?;
+
+            let mut sorted_mappings = mapping.iter().collect::<Vec<_>>();
+
+            sorted_mappings.sort();
+
+            for mapping in sorted_mappings {
+                writeln!(f, "    {:?}", mapping)?;
             }
         }
         Ok(())
@@ -333,7 +350,7 @@ impl Display for TagRegistry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Self::display_helper(&self.block_map, f)?;
         Self::display_helper(&self.entity_map, f)?;
-        Self::display_helper(&self.fluid_map, f)?;
+        // Self::display_helper(&self.fluid_map, f)?;
         Self::display_helper(&self.item_map, f)?;
 
         Ok(())
@@ -372,5 +389,21 @@ impl From<VanillaFluidTags> for crate::NamespacedId {
 impl From<VanillaItemTags> for crate::NamespacedId {
     fn from(tag: VanillaItemTags) -> Self {
         NamespacedId::from_str(tag.name()).unwrap()
+    }
+}
+
+mod tests {
+    #[test]
+    fn create_registry() {
+        use std::path::Path;
+
+        use crate::TagRegistryBuilder;
+
+        let mut builder = TagRegistryBuilder::new();
+        builder
+            .add_tags_from_dir(&Path::new("minecraft/data/minecraft/tags"), "minecraft")
+            .unwrap();
+
+        // If it hasn't panicked it's probably fine
     }
 }

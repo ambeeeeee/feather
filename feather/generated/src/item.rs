@@ -1,4 +1,33 @@
+use std::{convert::TryFrom, fmt::Display};
+
+use serde::{Deserialize, Serialize};
+
 // This file is @generated. Please do not edit.
+
+impl Serialize for Item {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut s = self.name().to_owned();
+        s.insert_str(0, "minecraft:");
+        s.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Item {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let string = String::deserialize(deserializer)?;
+        Ok(Item::from_name(match string.strip_prefix("minecraft:") {
+            Some(s) => s,
+            None => &string,
+        })
+        .unwrap())
+    }
+}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Item {
@@ -8852,5 +8881,29 @@ impl Item {
             Item::CrackedPolishedBlackstoneBricks => None,
             Item::RespawnAnchor => None,
         }
+    }
+}
+
+impl TryFrom<String> for Item {
+    type Error = ItemNotFound;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if let Some(block) = Self::from_name(&value) {
+            Ok(block)
+        } else {
+            Err(ItemNotFound { item_type: value })
+        }
+    }
+}
+
+use thiserror::Error;
+#[derive(Error, Debug)]
+pub struct ItemNotFound {
+    item_type: String,
+}
+
+impl Display for ItemNotFound {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "unable to find block {}", self.item_type)
     }
 }

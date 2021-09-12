@@ -9,15 +9,13 @@
 use std::path::Path;
 
 use ahash::AHashMap;
+use generated::{BlockNotFound, EntityNotFound, ItemNotFound};
 use id::ParseError;
 use serde::Deserialize;
 use smartstring::{LazyCompact, SmartString};
 
 mod id;
 pub use id::NamespacedId;
-
-mod serde_helpers;
-pub(crate) use serde_helpers::*;
 
 pub mod tag;
 use tag::LoopError;
@@ -44,7 +42,14 @@ pub enum TagLoadError {
     InvalidLink(NamespacedId, NamespacedId),
     #[error("json parsing error: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("unable to find block")]
+    BlockNotFound(#[from] BlockNotFound),
+    #[error("unable to find entity")]
+    EntityNotFound(#[from] EntityNotFound),
+    #[error("unable to find item")]
+    ItemNotFound(#[from] ItemNotFound),
 }
+
 #[derive(Error, Debug)]
 pub enum RecipeLoadError {
     #[error("invalid namespaced id: {0}")]
