@@ -1,8 +1,11 @@
-use std::{collections::HashMap, fs::File, io::Read, path::Path};
+use std::{collections::HashMap, fmt, fs::File, io::Read, marker::PhantomData, path::Path};
 
 use crate::{NamespacedId, TagRegistry};
 use generated::{Item, ItemStack};
-use serde::{Deserialize, Serialize};
+use serde::{
+    de::{self, Visitor},
+    Deserialize, Serialize,
+};
 use smallvec::SmallVec;
 use smartstring::{Compact, SmartString};
 
@@ -335,7 +338,7 @@ impl ShapelessRecipe {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShapedRecipe {
     group: Option<SmartString<Compact>>,
-    pattern: [[Option<char>; 3]; 3],
+    pattern: Vec<String>,
     key: HashMap<char, Ingredient>,
     result: ItemStack,
 }
@@ -542,14 +545,7 @@ mod tests {
         if let Ok(Recipe::Shaped(recipe)) = deserialized {
             assert_eq!(recipe.group, None);
 
-            assert_eq!(
-                recipe.pattern,
-                [
-                    [Some('#'), Some(' '), Some('C')],
-                    [Some('W'), Some('B'), Some(' ')],
-                    [None, None, None]
-                ]
-            );
+            assert_eq!(recipe.pattern, [String::from("# C"), String::from("WB "),]);
 
             assert_eq!(
                 recipe.key.get(&'#'),
@@ -632,6 +628,182 @@ mod tests {
             }
 
             assert_eq!(recipe.result, ItemStack::new(Item::Tnt, 1));
+        } else {
+            panic!("Deserialization Failed.\n{:?}", deserialized)
+        }
+    }
+
+    #[test]
+    fn test_smelt() {
+        use generated::Item;
+
+        use crate::recipe::{Ingredient, RecipeComponent};
+
+        use super::Recipe;
+
+        let recipe = r#"
+        {
+            "type": "minecraft:smelting",
+            "ingredient": {
+                "item": "minecraft:smooth_stone"
+            },
+            "result": "minecraft:spawner",
+            "experience": 420,
+            "cookingtime": 727
+        }
+        "#;
+
+        let deserialized = Recipe::from_raw(&recipe);
+
+        if let Ok(Recipe::Smelting(recipe)) = deserialized {
+            assert_eq!(recipe.group, None);
+
+            assert_eq!(
+                recipe.ingredient,
+                Ingredient::One(RecipeComponent {
+                    item: Some(Item::SmoothStone),
+                    tag: None
+                })
+            );
+
+            assert_eq!(recipe.result, Item::Spawner);
+
+            assert_eq!(recipe.experience, 420.0);
+
+            assert_eq!(recipe.cookingtime, 727);
+        } else {
+            panic!("Deserialization Failed.\n{:?}", deserialized)
+        }
+    }
+
+    #[test]
+    fn test_smith() {
+        use generated::Item;
+
+        use crate::recipe::{Ingredient, RecipeComponent};
+
+        use super::Recipe;
+
+        let recipe = r#"
+        {
+            "type": "minecraft:smithing",
+            "base": {
+                "item": "minecraft:dispenser"
+            },
+            "addition": {
+                "item": "minecraft:oxeye_daisy"
+            },
+            "result": {
+                "item": "minecraft:sugar_cane"
+            }
+        }
+        "#;
+
+        let deserialized = Recipe::from_raw(&recipe);
+
+        if let Ok(Recipe::Smithing(recipe)) = deserialized {
+            assert_eq!(recipe.group, None);
+
+            assert_eq!(
+                recipe.base,
+                Ingredient::One(RecipeComponent {
+                    item: Some(Item::Dispenser),
+                    tag: None
+                })
+            );
+
+            assert_eq!(
+                recipe.addition,
+                Ingredient::One(RecipeComponent {
+                    item: Some(Item::OxeyeDaisy),
+                    tag: None
+                })
+            );
+
+            assert_eq!(recipe.result, ItemStack::new(Item::SugarCane, 1));
+        } else {
+            panic!("Deserialization Failed.\n{:?}", deserialized)
+        }
+    }
+
+    #[test]
+    fn test_smoke() {
+        use generated::Item;
+
+        use crate::recipe::{Ingredient, RecipeComponent};
+
+        use super::Recipe;
+
+        let recipe = r#"
+        {
+            "type": "minecraft:smoking",
+            "ingredient": {
+                "item": "minecraft:smooth_stone"
+            },
+            "result": "minecraft:sugar_cane",
+            "experience": 420,
+            "cookingtime": 727
+        }
+        "#;
+
+        let deserialized = Recipe::from_raw(&recipe);
+
+        if let Ok(Recipe::Smoking(recipe)) = deserialized {
+            assert_eq!(recipe.group, None);
+
+            assert_eq!(
+                recipe.ingredient,
+                Ingredient::One(RecipeComponent {
+                    item: Some(Item::SmoothStone),
+                    tag: None
+                })
+            );
+
+            assert_eq!(recipe.result, Item::SugarCane);
+
+            assert_eq!(recipe.experience, 420.0);
+
+            assert_eq!(recipe.cookingtime, 727);
+        } else {
+            panic!("Deserialization Failed.\n{:?}", deserialized)
+        }
+    }
+
+    #[test]
+    fn test_stonecutter() {
+        use generated::Item;
+
+        use crate::recipe::{Ingredient, RecipeComponent};
+
+        use super::Recipe;
+
+        let recipe = r#"
+        {
+            "type": "minecraft:stonecutting",
+            "ingredient": {
+                "item": "minecraft:dispenser"
+            },
+            "result": "minecraft:sugar_cane",
+            "count": 1
+        }
+        "#;
+
+        let deserialized = Recipe::from_raw(&recipe);
+
+        if let Ok(Recipe::Stonecutting(recipe)) = deserialized {
+            assert_eq!(recipe.group, None);
+
+            assert_eq!(
+                recipe.ingredient,
+                Ingredient::One(RecipeComponent {
+                    item: Some(Item::Dispenser),
+                    tag: None
+                })
+            );
+
+            assert_eq!(recipe.result, Item::SugarCane);
+
+            assert_eq!(recipe.count, 1);
         } else {
             panic!("Deserialization Failed.\n{:?}", deserialized)
         }
