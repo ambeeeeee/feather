@@ -1,5 +1,5 @@
 use parking_lot::{Mutex, MutexGuard};
-use std::sync::Arc;
+use std::{convert::TryFrom, fmt::Display, sync::Arc};
 
 #[allow(clippy::all)]
 mod biome;
@@ -19,14 +19,15 @@ mod simplified_block;
 pub mod vanilla_tags;
 
 pub use biome::Biome;
-pub use block::{BlockKind, BlockNotFound};
-pub use entity::{EntityKind, EntityNotFound};
+pub use block::BlockKind;
+pub use entity::EntityKind;
 pub use inventory::{Area, InventoryBacking, Window};
-pub use item::{Item, ItemNotFound};
+pub use item::Item;
 pub use particle::Particle;
 pub use simplified_block::SimplifiedBlockKind;
 
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ItemStack {
@@ -245,5 +246,73 @@ impl Window {
             i += 1;
         }
         vec
+    }
+}
+
+impl TryFrom<String> for BlockKind {
+    type Error = BlockNotFound;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if let Some(block) = Self::from_name(&value) {
+            Ok(block)
+        } else {
+            Err(BlockNotFound { block_type: value })
+        }
+    }
+}
+
+#[derive(Error, Debug)]
+pub struct BlockNotFound {
+    block_type: String,
+}
+
+impl Display for BlockNotFound {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "unable to find block {}", self.block_type)
+    }
+}
+
+impl TryFrom<String> for Item {
+    type Error = ItemNotFound;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if let Some(block) = Self::from_name(&value) {
+            Ok(block)
+        } else {
+            Err(ItemNotFound { item_type: value })
+        }
+    }
+}
+
+#[derive(Error, Debug)]
+pub struct ItemNotFound {
+    item_type: String,
+}
+
+impl Display for ItemNotFound {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "unable to find block {}", self.item_type)
+    }
+}
+
+impl TryFrom<String> for EntityKind {
+    type Error = EntityNotFound;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if let Some(block) = Self::from_name(&value) {
+            Ok(block)
+        } else {
+            Err(EntityNotFound { entity_type: value })
+        }
+    }
+}
+#[derive(Error, Debug)]
+pub struct EntityNotFound {
+    entity_type: String,
+}
+
+impl Display for EntityNotFound {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "unable to find block {}", self.entity_type)
     }
 }

@@ -13705,27 +13705,3 @@ impl BlockKind {
         }
     }
 }
-
-impl TryFrom<String> for BlockKind {
-    type Error = BlockNotFound;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        if let Some(block) = Self::from_name(&value) {
-            Ok(block)
-        } else {
-            Err(BlockNotFound { block_type: value })
-        }
-    }
-}
-
-use thiserror::Error;
-#[derive(Error, Debug)]
-pub struct BlockNotFound {
-    block_type: String,
-}
-
-impl Display for BlockNotFound {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "unable to find block {}", self.block_type)
-    }
-}

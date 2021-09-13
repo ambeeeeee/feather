@@ -8883,27 +8883,3 @@ impl Item {
         }
     }
 }
-
-impl TryFrom<String> for Item {
-    type Error = ItemNotFound;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        if let Some(block) = Self::from_name(&value) {
-            Ok(block)
-        } else {
-            Err(ItemNotFound { item_type: value })
-        }
-    }
-}
-
-use thiserror::Error;
-#[derive(Error, Debug)]
-pub struct ItemNotFound {
-    item_type: String,
-}
-
-impl Display for ItemNotFound {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "unable to find block {}", self.item_type)
-    }
-}
