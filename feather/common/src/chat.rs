@@ -1,3 +1,5 @@
+//! In-Game Chat Types
+
 use base::{Text, Title};
 
 /// An entity's "mailbox" for receiving chat messages.

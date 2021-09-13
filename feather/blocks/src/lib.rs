@@ -126,6 +126,7 @@ impl From<BlockId> for u32 {
     }
 }
 
+/// Error returned when the BlockId could not be determined with the given `u32` input.
 #[derive(Debug, Error)]
 pub enum BlockIdFromU32Error {
     #[error("invalid block kind ID {0}")]

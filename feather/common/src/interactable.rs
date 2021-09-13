@@ -1,3 +1,5 @@
+//! Registry for interactable blocks.
+
 use std::collections::HashMap;
 
 use blocks::BlockKind;

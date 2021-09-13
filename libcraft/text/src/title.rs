@@ -1,6 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-// Based on https://wiki.vg/index.php?title=Protocol&oldid=16459#Title
+/// A minecraft title's metadata.
+///
+/// Displayed in vanilla with the `/title` command.
+///
+/// Based on <https://wiki.vg/index.php?title=Protocol&oldid=16459#Title>
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Title {
     pub title: Option<String>,

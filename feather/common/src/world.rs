@@ -1,3 +1,5 @@
+//! The minecraft world.
+
 use ahash::{AHashMap, AHashSet};
 use base::{BlockPosition, Chunk, ChunkHandle, ChunkLock, ChunkPosition, CHUNK_HEIGHT};
 use blocks::BlockId;
@@ -14,7 +16,7 @@ use crate::{
 
 /// Stores all blocks and chunks in a world,
 /// along with global world data like weather, time,
-/// and the [`WorldSource`](crate::world_source::WorldSource).
+/// and the `WorldSource`.
 ///
 /// NB: _not_ what most Rust ECSs call "world."
 /// This does not store entities; it only contains blocks.

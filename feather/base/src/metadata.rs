@@ -149,6 +149,7 @@ impl ToMetaEntry for OptVarInt {
     }
 }
 
+/// A map of an entity's metadata to their associated keys as defined by the specification.
 #[derive(Clone, Debug)]
 pub struct EntityMetadata {
     pub values: BTreeMap<u8, MetaEntry>,

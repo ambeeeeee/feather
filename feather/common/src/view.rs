@@ -1,3 +1,5 @@
+//! Logic for handling which chunks a player is loading based on position.
+
 use ahash::AHashSet;
 use base::{ChunkPosition, Position};
 use ecs::{SysResult, SystemExecutor};

@@ -1,3 +1,5 @@
+//! Player window logic.
+
 use std::mem;
 
 use anyhow::{anyhow, bail};

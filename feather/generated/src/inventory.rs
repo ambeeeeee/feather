@@ -42,6 +42,10 @@ pub enum Area {
     StonecutterInput,
     StonecutterOutput,
 }
+
+/// An enum which represents the types of inventories that are available given the window's type.
+///
+/// The use of [`crate::Inventory`] allows for inventories to be cheaply cloned, since the data itself is not cloned.
 #[derive(Debug, Clone)]
 pub enum Window {
     Player {

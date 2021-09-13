@@ -1,3 +1,5 @@
+//! Events relevant to `feather-common`.
+
 use base::{ChunkHandle, ChunkPosition};
 
 use crate::view::View;

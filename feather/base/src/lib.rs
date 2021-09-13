@@ -36,6 +36,7 @@ pub const TICK_DURATION: Duration = Duration::from_millis(TICK_MILLIS as u64);
 /// Default port for Minecraft servers.
 pub const DEFAULT_PORT: u16 = 25565;
 
+/// A cardinal direction.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
 pub enum Direction {
     North,

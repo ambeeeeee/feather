@@ -22,7 +22,7 @@ pub type Vec4f = Vec4<f32>;
 pub type Vec2d = Vec2<f64>;
 /// Three-component double-precision floating point vector.
 pub type Vec3d = Vec3<f64>;
-/// Four-compounent double-precision floating point vector.
+/// Four-component double-precision floating point vector.
 pub type Vec4d = Vec4<f64>;
 
 pub type Aabb = vek::Aabb<f64>;
@@ -218,6 +218,8 @@ fn square(x: f64) -> f64 {
     Zeroable,
     Pod,
 )]
+
+/// The position of a chunk.
 #[repr(C)]
 pub struct ChunkPosition {
     pub x: i32,
@@ -276,6 +278,8 @@ impl Add<ChunkPosition> for ChunkPosition {
     Zeroable,
     Pod,
 )]
+
+/// The 3D position of a block.
 #[repr(C)]
 pub struct BlockPosition {
     pub x: i32,

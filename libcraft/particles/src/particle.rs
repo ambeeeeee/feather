@@ -3,6 +3,7 @@ use libcraft_items::Item;
 use ordinalizer::Ordinal;
 use serde::{Deserialize, Serialize};
 
+/// A particle's type with associated position and count.
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 #[repr(C)]
 pub struct Particle {
