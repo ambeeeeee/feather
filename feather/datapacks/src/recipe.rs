@@ -1,11 +1,8 @@
-use std::{collections::HashMap, fmt, fs::File, io::Read, marker::PhantomData, path::Path};
+use std::{collections::HashMap, fs::File, io::Read, path::Path};
 
 use crate::{NamespacedId, TagRegistry};
 use generated::{Item, ItemStack};
-use serde::{
-    de::{self, Visitor},
-    Deserialize, Serialize,
-};
+use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use smartstring::{Compact, SmartString};
 
@@ -103,6 +100,7 @@ impl RecipeRegistry {
 }
 
 /// A minecraft crafting recipe.
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum Recipe {
@@ -147,7 +145,7 @@ impl Recipe {
     }
 
     /// Tries to parse a string into a recipe from JSON.
-    pub fn from_raw<'a>(raw: &'a str) -> Result<Self, crate::RecipeLoadError> {
+    pub fn from_raw(raw: &'_ str) -> Result<Self, crate::RecipeLoadError> {
         Ok(serde_json::from_str(raw)?)
     }
 }
@@ -207,7 +205,7 @@ impl SmeltingRecipe {
     }
     pub fn match_self(&self, item: Item, tag_registry: &TagRegistry) -> Option<(Item, f32)> {
         if self.matches(item, tag_registry) {
-            Some((self.result.into(), self.experience))
+            Some((self.result, self.experience))
         } else {
             None
         }
@@ -230,7 +228,7 @@ impl SmokingRecipe {
     }
     pub fn match_self(&self, item: Item, tag_registry: &TagRegistry) -> Option<(Item, f32)> {
         if self.matches(item, tag_registry) {
-            Some((self.result.into(), self.experience))
+            Some((self.result, self.experience))
         } else {
             None
         }
@@ -253,7 +251,7 @@ impl BlastingRecipe {
     }
     pub fn match_self(&self, item: Item, tag_registry: &TagRegistry) -> Option<(Item, f32)> {
         if self.matches(item, tag_registry) {
-            Some((self.result.into(), self.experience))
+            Some((self.result, self.experience))
         } else {
             None
         }
@@ -277,7 +275,7 @@ impl CampfireRecipe {
 
     pub fn match_self(&self, item: Item, tag_registry: &TagRegistry) -> Option<(Item, f32)> {
         if self.matches(item, tag_registry) {
-            Some((self.result.into(), self.experience))
+            Some((self.result, self.experience))
         } else {
             None
         }
@@ -366,7 +364,7 @@ impl SmithingRecipe {
         tag_registry: &TagRegistry,
     ) -> Option<Item> {
         if self.matches(base, addition, tag_registry) {
-            Some(self.result.item.into())
+            Some(self.result.item)
         } else {
             None
         }
@@ -388,7 +386,7 @@ impl StonecuttingRecipe {
     pub fn match_self(&self, item: Item, tag_registry: &TagRegistry) -> Option<ItemStack> {
         if self.matches(item, tag_registry) {
             Some(ItemStack {
-                item: self.result.into(),
+                item: self.result,
                 count: self.count,
                 damage: None,
             })
@@ -412,10 +410,6 @@ pub fn default_campfire_time() -> u32 {
 }
 
 mod tests {
-    use std::str::FromStr;
-
-    use generated::ItemStack;
-    use smartstring::SmartString;
 
     #[test]
     fn test_blasting() {
@@ -462,6 +456,9 @@ mod tests {
 
     #[test]
     fn test_campfire() {
+        use smartstring::SmartString;
+        use std::str::FromStr;
+
         use generated::Item;
 
         use crate::recipe::{Ingredient, RecipeComponent};
@@ -506,7 +503,7 @@ mod tests {
 
     #[test]
     fn test_shaped() {
-        use generated::Item;
+        use generated::{Item, ItemStack};
 
         use crate::recipe::{Ingredient, RecipeComponent};
 
@@ -587,7 +584,7 @@ mod tests {
 
     #[test]
     fn test_shapeless() {
-        use generated::Item;
+        use generated::{Item, ItemStack};
 
         use crate::recipe::{Ingredient, RecipeComponent};
 
@@ -678,7 +675,7 @@ mod tests {
 
     #[test]
     fn test_smith() {
-        use generated::Item;
+        use generated::{Item, ItemStack};
 
         use crate::recipe::{Ingredient, RecipeComponent};
 

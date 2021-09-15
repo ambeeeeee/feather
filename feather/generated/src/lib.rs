@@ -253,7 +253,7 @@ impl TryFrom<String> for BlockKind {
     type Error = BlockNotFound;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        if let Some(block) = Self::from_name(&value) {
+        if let Some(block) = Self::from_name(&value.replace("minecraft:", "")) {
             Ok(block)
         } else {
             Err(BlockNotFound { block_type: value })
@@ -276,7 +276,7 @@ impl TryFrom<String> for Item {
     type Error = ItemNotFound;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        if let Some(block) = Self::from_name(&value) {
+        if let Some(block) = Self::from_name(&value.replace("minecraft:", "")) {
             Ok(block)
         } else {
             Err(ItemNotFound { item_type: value })
@@ -291,7 +291,7 @@ pub struct ItemNotFound {
 
 impl Display for ItemNotFound {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "unable to find block {}", self.item_type)
+        write!(f, "unable to find item {}", self.item_type)
     }
 }
 
@@ -299,7 +299,7 @@ impl TryFrom<String> for EntityKind {
     type Error = EntityNotFound;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        if let Some(block) = Self::from_name(&value) {
+        if let Some(block) = Self::from_name(&value.replace("minecraft:", "")) {
             Ok(block)
         } else {
             Err(EntityNotFound { entity_type: value })
@@ -313,6 +313,6 @@ pub struct EntityNotFound {
 
 impl Display for EntityNotFound {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "unable to find block {}", self.entity_type)
+        write!(f, "unable to find entity {}", self.entity_type)
     }
 }
